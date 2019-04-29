@@ -40,7 +40,8 @@ set -e
 set -x
 
 # A list of tests to run as a single instance on Jenkins
-JENKINS_TEST_LIST=(scripts/cart_echo_test.yml                   \
+JENKINS_TEST_LIST=(scripts/cart_test_multi_prov.yml             \
+                   scripts/cart_echo_test.yml                   \
                    scripts/cart_echo_test_non_sep.yml           \
                    scripts/cart_test_corpc_prefwd.yml           \
                    scripts/cart_test_corpc_prefwd_non_sep.yml   \
@@ -58,7 +59,7 @@ JENKINS_TEST_LIST=(scripts/cart_echo_test.yml                   \
                    scripts/cart_test_corpc_version_non_sep.yml  \
                    scripts/cart_test_cart_ctl.yml               \
                    scripts/cart_test_cart_ctl_non_sep.yml       \
-                   scripts/cart_test_ep_credits.yml		\
+                   scripts/cart_test_ep_credits.yml             \
                    scripts/cart_test_iv.yml                     \
                    scripts/cart_test_iv_non_sep.yml             \
                    scripts/cart_test_proto.yml                  \

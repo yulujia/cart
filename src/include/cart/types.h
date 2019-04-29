@@ -74,9 +74,9 @@ typedef struct crt_init_options {
 	 */
 	uint32_t	cio_sep_override:1,
 			/**
-			* overrides the value of the environment variable
-			* CRT_CTX_SHARE_ADDR
-			*/
+			 * overrides the value of the environment variable
+			 * CRT_CTX_SHARE_ADDR
+			 */
 			cio_use_sep:1,
 			/** whether or not to inject faults */
 			cio_fault_inject:1,
@@ -85,14 +85,23 @@ typedef struct crt_init_options {
 			*/
 			cio_use_credits:1;
 			/**
-			* overrides the value of the environment variable
-			* CRT_CTX_NUM
-			*/
+			 * overrides the value of the environment variable
+			 * CRT_CTX_NUM
+			 */
 	int		cio_ctx_max_num;
 
 			/** Used with cio_use_credits to set credit limit */
 	int		cio_ep_credits;
+	int		na_id;
 } crt_init_options_t;
+
+typedef struct crt_ctx_init_opt {
+	/* interface name */
+	char		*ccio_ni;
+	/* na plugin name, e.g. ofi+sockets or ofi+psm2 */
+	char		*ccio_na;
+	int		 ccio_port;
+} crt_ctx_init_opt_t;
 
 typedef int		 crt_status_t;
 /**

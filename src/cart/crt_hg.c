@@ -456,6 +456,68 @@ crt_get_info_string(char **string)
 	return 0;
 }
 
+/**
+ * lookup the na plugin type given na_str
+ * \param[out]          na_type the na plugin type id
+ * \param[in] na_str    the na plugin string, e.g. "ofi+psm2", or "ofi+sockets"
+ *
+ * \return              DER_SUCCESS on success, negative value on error.
+ */
+int
+crt_parse_na_type(int *na_type, char *na_str)
+{
+	int plugin_idx;
+
+	if (na_str == NULL) {
+		D_ERROR("na_str can't be NULL.\n");
+		return -DER_INVAL;
+	}
+
+	for (plugin_idx = 0; crt_na_dict[plugin_idx].nad_str != NULL;
+	     plugin_idx++) {
+		if (!strncmp(na_str, crt_na_dict[plugin_idx].nad_str,
+			     strlen(crt_na_dict[plugin_idx].nad_str) + 1)) {
+			*na_type = crt_na_dict[plugin_idx].nad_type;
+			return DER_SUCCESS;
+		}
+	}
+
+	return -DER_NONEXIST;
+}
+
+static int
+crt_get_info_string_opt(char **string, crt_ctx_init_opt_t *opt)
+{
+	int			 port;
+	int			 plugin;
+	char			*plugin_str;
+	struct na_ofi_config	*na_conf;
+	int			 rc;
+
+	rc = crt_parse_na_type(&plugin, opt->ccio_na);
+	if (rc != DER_SUCCESS)
+		return rc;
+	D_ASSERT(plugin == crt_na_dict[plugin].nad_type);
+	plugin_str = crt_na_dict[plugin].nad_str;
+
+	if (!crt_na_dict[plugin].nad_port_bind) {
+		D_ASPRINTF(*string, "%s://", plugin_str);
+	} else {
+		na_conf = crt_na_config_lookup(opt->ccio_ni, opt->ccio_na,
+					       true /* need_lock */);
+		D_ASSERTF(na_conf != NULL, "na_conf can't be NULL\n");
+		D_DEBUG(DB_ALL, "ni name: %s\n", na_conf->noc_interface);
+		port = na_conf->noc_port;
+		na_conf->noc_port++;
+		D_ASPRINTF(*string, "%s://%s:%d", plugin_str,
+			   na_conf->noc_ip_str, port);
+	}
+	if (*string == NULL)
+		return -DER_NOMEM;
+
+	return DER_SUCCESS;
+}
+
 static int
 crt_hg_log(FILE *stream, const char *fmt, ...)
 {
@@ -613,7 +675,8 @@ crt_hg_fini()
 }
 
 int
-crt_hg_ctx_init(struct crt_hg_context *hg_ctx, int idx)
+crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
+		    crt_ctx_init_opt_t *opt)
 {
 	struct crt_context	*crt_ctx;
 	na_class_t		*na_class = NULL;
@@ -622,6 +685,7 @@ crt_hg_ctx_init(struct crt_hg_context *hg_ctx, int idx)
 	char			*info_string = NULL;
 	struct hg_init_info	 init_info = {};
 	hg_return_t		 hg_ret;
+	struct na_ofi_config	*na_conf;
 	int			 rc = 0;
 
 	D_ASSERT(hg_ctx != NULL);
@@ -654,10 +718,22 @@ crt_hg_ctx_init(struct crt_hg_context *hg_ctx, int idx)
 		char		addr_str[CRT_ADDR_STR_MAX_LEN] = {'\0'};
 		na_size_t	str_size = CRT_ADDR_STR_MAX_LEN;
 
-		rc = crt_get_info_string(&info_string);
+		na_conf = crt_na_config_lookup(opt->ccio_ni, opt->ccio_na,
+					       true /* need_lock */);
+		if (na_conf == NULL) {
+			/* not found */
+			D_DEBUG(DB_ALL, "interface %s not initialized yet.\n",
+				opt->ccio_ni);
+			crt_na_ofi_config_init_opt(opt);
+		} else {
+			D_DEBUG(DB_ALL, "interface %s initialized.\n",
+				na_conf->noc_interface);
+		}
+		rc = crt_get_info_string_opt(&info_string, opt);
 		if (rc != 0)
 			D_GOTO(out, rc);
 
+		D_DEBUG(DB_ALL, "info_string %s\n", info_string);
 		init_info.na_init_info.progress_mode = NA_DEFAULT;
 		init_info.na_init_info.max_contexts = 1;
 		na_class = NA_Initialize_opt(info_string, crt_is_service(),
@@ -704,8 +780,6 @@ crt_hg_ctx_init(struct crt_hg_context *hg_ctx, int idx)
 			D_GOTO(out, rc);
 		}
 
-		D_DEBUG(DB_NET, "crt_gdata.cg_hg->chg_hgcla %p\n",
-			crt_gdata.cg_hg->chg_hgcla);
 		/* register crt_ctx to get it in crt_rpc_handler_common */
 		hg_ret = HG_Context_set_data(hg_context, crt_ctx, NULL);
 		if (hg_ret != HG_SUCCESS) {

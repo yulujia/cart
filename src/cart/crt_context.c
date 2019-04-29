@@ -207,6 +207,25 @@ out:
 int
 crt_context_create(crt_context_t *crt_ctx)
 {
+	crt_ctx_init_opt_t	opt;
+	crt_phy_addr_t		addr_env;
+
+	addr_env = (crt_phy_addr_t)getenv(CRT_PHY_ADDR_ENV);
+	if (addr_env == NULL)
+		D_DEBUG(DB_ALL, "ENV %s not found.\n", CRT_PHY_ADDR_ENV);
+	else
+		D_DEBUG(DB_ALL, "EVN %s: %s.\n", CRT_PHY_ADDR_ENV, addr_env);
+
+	opt.ccio_ni = crt_na_ofi_conf.noc_interface;
+	opt.ccio_na = addr_env;
+	opt.ccio_port = crt_na_ofi_conf.noc_port;
+
+	return crt_context_create_opt(crt_ctx, &opt);
+}
+
+int
+crt_context_create_opt(crt_context_t *crt_ctx, crt_ctx_init_opt_t *opt)
+{
 	struct crt_context	*ctx = NULL;
 	int			rc = 0;
 
@@ -236,7 +255,7 @@ crt_context_create(crt_context_t *crt_ctx)
 	D_RWLOCK_WRLOCK(&crt_gdata.cg_rwlock);
 
 
-	rc = crt_hg_ctx_init(&ctx->cc_hg_ctx, crt_gdata.cg_ctx_num);
+	rc = crt_hg_ctx_init_opt(&ctx->cc_hg_ctx, crt_gdata.cg_ctx_num, opt);
 	if (rc != 0) {
 		D_ERROR("crt_hg_ctx_init failed rc: %d.\n", rc);
 		D_RWLOCK_UNLOCK(&crt_gdata.cg_rwlock);

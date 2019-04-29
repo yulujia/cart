@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2018 Intel Corporation
+/* Copyright (C) 2016-2019 Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,6 +79,8 @@ int crt_req_timeout_track(struct crt_rpc_priv *rpc_priv);
 void crt_req_timeout_untrack(struct crt_rpc_priv *rpc_priv);
 void crt_req_force_timeout(struct crt_rpc_priv *rpc_priv);
 
+int crt_parse_na_type(int *na_type, char *na_str);
+
 /** some simple helper functions */
 
 static inline bool
@@ -106,5 +108,37 @@ crt_hdlr_proto_query(crt_rpc_t *rpc_req);
 
 /* Internal API to sync timestamp with remote message */
 uint64_t crt_hlc_get_msg(uint64_t msg);
+
+static inline struct na_ofi_config *
+crt_na_config_lookup(const char *ni_str, const char *na_str, bool need_lock)
+{
+	struct na_ofi_config	*na_conf = NULL;
+	struct na_ofi_config	*na_conf_tmp = NULL;
+
+	/* TODO: D_RWLOCK_RDLOCK(); */
+	if (need_lock)
+		D_RWLOCK_RDLOCK(&crt_na_ofi_config_rwlock);
+
+	D_DEBUG(DB_ALL, "looking up interface: %s\n", ni_str);
+	d_list_for_each_entry(na_conf_tmp, &crt_na_ofi_config_opt,
+			      noc_link) {
+		if (!strncmp(na_conf_tmp->noc_interface, ni_str,
+			     INET_ADDRSTRLEN) &&
+		    !strncmp(na_conf_tmp->noc_na_str, na_str, 64)) {
+			na_conf = na_conf_tmp;
+			break;
+		}
+		D_DEBUG(DB_ALL, "not a match, found %s on %s (len: %zd) "
+			"want %s on %s (len %zd)\n", na_conf_tmp->noc_na_str,
+			na_conf_tmp->noc_interface,
+			strlen(na_conf_tmp->noc_interface),
+			na_str, ni_str, strlen(ni_str));
+	}
+	/* D_RWLOCK_UNLOCK(); */
+	if (need_lock)
+		D_RWLOCK_UNLOCK(&crt_na_ofi_config_rwlock);
+
+	return na_conf;
+}
 
 #endif /* __CRT_INTERNAL_FNS_H__ */

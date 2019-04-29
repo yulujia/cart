@@ -279,11 +279,19 @@ struct na_ofi_config {
 	char		*noc_interface;
 	/* IP addr str for the noc_interface */
 	char		 noc_ip_str[INET_ADDRSTRLEN];
+	char		*noc_na_str;
+	d_list_t	 noc_link; /* link to crt_na_ofi_config_opt */
 };
 
 int crt_na_ofi_config_init(void);
+int crt_na_ofi_config_2_init(void);
 void crt_na_ofi_config_fini(void);
+void crt_na_ofi_config_2_fini(void);
 
 extern struct na_ofi_config crt_na_ofi_conf;
+extern struct na_ofi_config crt_na_ofi_conf_2;
+
+extern d_list_t crt_na_ofi_config_opt;
+extern pthread_rwlock_t	crt_na_ofi_config_rwlock;
 
 #endif /* __CRT_INTERNAL_TYPES_H__ */
