@@ -78,6 +78,8 @@ void crt_rpc_complete(struct crt_rpc_priv *rpc_priv, int rc);
 int crt_req_timeout_track(struct crt_rpc_priv *rpc_priv);
 void crt_req_timeout_untrack(struct crt_rpc_priv *rpc_priv);
 void crt_req_force_timeout(struct crt_rpc_priv *rpc_priv);
+crt_context_t crt_context_lookup_prov(const char *interface, const char *prov,
+		bool need_lock);
 
 int crt_parse_na_type(int *na_type, char *na_str);
 

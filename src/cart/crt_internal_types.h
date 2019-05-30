@@ -178,6 +178,7 @@ struct crt_context {
 	pthread_mutex_t		 cc_mutex;
 	/* timeout per-context */
 	uint32_t		 cc_timeout_sec;
+	struct na_ofi_config	*cc_na_conf;
 };
 
 /* in-flight RPC req list, be tracked per endpoint for every crt_context */

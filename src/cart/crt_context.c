@@ -263,6 +263,8 @@ crt_context_create_opt(crt_context_t *crt_ctx, crt_ctx_init_opt_t *opt)
 		D_GOTO(out, rc);
 	}
 
+	ctx->cc_na_conf = crt_na_config_lookup(opt->ccio_ni, opt->ccio_na,
+					       true /* need_lock */);
 	ctx->cc_idx = crt_gdata.cg_ctx_num;
 	d_list_add_tail(&ctx->cc_link, &crt_gdata.cg_ctx_list);
 	crt_gdata.cg_ctx_num++;
@@ -1074,6 +1076,30 @@ crt_context_lookup(int ctx_idx)
 
 	return (found == true) ? ctx : NULL;
 }
+
+crt_context_t
+crt_context_lookup_prov(const char *interface, const char *prov, bool need_lock) {
+	struct crt_context	*ctx;
+	struct na_ofi_config	*na_conf_tmp;
+	bool			 found = false;
+
+	if (need_lock)
+		D_RWLOCK_RDLOCK(&crt_gdata.cg_rwlock);
+	d_list_for_each_entry(ctx, &crt_gdata.cg_ctx_list, cc_link) {
+		na_conf_tmp = ctx->cc_na_conf;
+		if (!strncmp(na_conf_tmp->noc_interface, interface,
+			     INET_ADDRSTRLEN) &&
+		    !strncmp(na_conf_tmp->noc_na_str, prov, 64)) {
+			found = true;
+			break;
+		}
+	}
+	if (need_lock)
+		D_RWLOCK_UNLOCK(&crt_gdata.cg_rwlock);
+
+	return (found == true) ? ctx : NULL;
+}
+
 
 int
 crt_context_idx(crt_context_t crt_ctx, int *ctx_idx)
