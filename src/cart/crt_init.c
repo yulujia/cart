@@ -430,10 +430,11 @@ out:
 		d_log_fini();
 	} else {
 		// add ofi_conf to list
-		crt_ctx_init_opt_t na_ofi_opt;
+		crt_ctx_init_opt_t na_ofi_opt = {.ccio_na = "ofi+sockets"};
 
 		na_ofi_opt.ccio_ni = crt_na_ofi_conf.noc_interface;
-		na_ofi_opt.ccio_na = addr_env;
+		if (addr_env)
+			na_ofi_opt.ccio_na = addr_env;
 		na_ofi_opt.ccio_port = crt_na_ofi_conf.noc_port;
 		rc = crt_na_ofi_config_init_opt(&na_ofi_opt);
 		if (rc != DER_SUCCESS) {
@@ -880,7 +881,11 @@ crt_na_ofi_config_init_opt(crt_ctx_init_opt_t *opt)
 	int na_type;
 	int		 rc = 0;
 
-	crt_parse_na_type(&na_type, opt->ccio_na);
+	rc = crt_parse_na_type(&na_type, opt->ccio_na);
+	if (rc != DER_SUCCESS) {
+		D_ERROR("crt_parse_na_type() failed, rc %d\n", rc);
+		return rc;
+	}
 	D_ASSERT(na_type == crt_na_dict[na_type].nad_type);
 	interface = opt->ccio_ni;
 	if (interface == NULL || strlen(interface) == 0) {

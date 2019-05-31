@@ -207,7 +207,7 @@ out:
 int
 crt_context_create(crt_context_t *crt_ctx)
 {
-	crt_ctx_init_opt_t	opt;
+	crt_ctx_init_opt_t	opt = {.ccio_na = "ofi+sockets"};
 	crt_phy_addr_t		addr_env;
 
 	addr_env = (crt_phy_addr_t)getenv(CRT_PHY_ADDR_ENV);
