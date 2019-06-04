@@ -751,8 +751,8 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 	hg_context_t		*hg_context = NULL;
 	hg_return_t		 hg_ret;
 	struct na_ofi_config	*na_conf;
-	int			 rc = 0;
 	bool			 reuse_na_ctx = false;
+	int			 rc = 0;
 
 	D_ASSERT(hg_ctx != NULL);
 	crt_ctx = container_of(hg_ctx, struct crt_context, cc_hg_ctx);
@@ -788,8 +788,8 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 		ctx_tmp = crt_context_lookup_prov(opt->ccio_ni, opt->ccio_na,
 						  false);
 		if (ctx_tmp == NULL) {
-			D_ERROR("Interface %s initialized but no context can't be "
-				"found.\n", na_conf->noc_interface);
+			D_ERROR("Interface %s initialized but no context "
+				"can't be found.\n", na_conf->noc_interface);
 			D_GOTO(out, rc = -DER_NONEXIST);
 		}
 		hg_class = ctx_tmp->cc_hg_ctx.chc_hgcla;
@@ -817,15 +817,6 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 		hg_ctx->chc_nacla = na_class;
 		hg_ctx->chc_hgcla = hg_class;
 		D_DEBUG(DB_NET, "hg_ctx->chc_hgcla %p\n", hg_ctx->chc_hgcla);
-		/* uncomment the following line will cause an error, need to fix
-		 * it
-Guest 0 checkin result - ret: 0, room_no: 1083, bool_val 1.
-*** Error in `./install/Linux/TESTING/tests/test_multi_prov': free(): invalid pointer: 0x00007f7417a597f8 ***
-======= Backtrace: =========
-06/01-00:14:51.55 boro-36 CaRT[40477] hg   ERR  # HG -- Error -- /home/yulujia/codes/mercury-github/src/mercury_core.c:1244
- # hg_core_finalize(): HG addrs must be freed before finalizing HG (8305216 remaining)
-
-		 */
 		if (opt->ccio_share_na == 1 || idx == 0) {
 			hg_ctx->chc_shared_na = true;
 			D_DEBUG(DB_TRACE, "idx %d, hg_ctx->chc_shared_na = true\n", idx);

@@ -213,8 +213,6 @@ crt_context_create(crt_context_t *crt_ctx)
 	addr_env = (crt_phy_addr_t)getenv(CRT_PHY_ADDR_ENV);
 	if (addr_env == NULL)
 		D_DEBUG(DB_ALL, "ENV %s not found.\n", CRT_PHY_ADDR_ENV);
-	else
-		D_DEBUG(DB_ALL, "EVN %s: %s.\n", CRT_PHY_ADDR_ENV, addr_env);
 
 	opt.ccio_ni = crt_na_ofi_conf.noc_interface;
 	opt.ccio_na = addr_env;

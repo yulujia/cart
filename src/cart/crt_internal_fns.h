@@ -117,7 +117,6 @@ crt_na_config_lookup(const char *ni_str, const char *na_str, bool need_lock)
 	struct na_ofi_config	*na_conf = NULL;
 	struct na_ofi_config	*na_conf_tmp = NULL;
 
-	/* TODO: D_RWLOCK_RDLOCK(); */
 	if (need_lock)
 		D_RWLOCK_RDLOCK(&crt_na_ofi_config_rwlock);
 
@@ -136,7 +135,6 @@ crt_na_config_lookup(const char *ni_str, const char *na_str, bool need_lock)
 			strlen(na_conf_tmp->noc_interface),
 			na_str, ni_str, strlen(ni_str));
 	}
-	/* D_RWLOCK_UNLOCK(); */
 	if (need_lock)
 		D_RWLOCK_UNLOCK(&crt_na_ofi_config_rwlock);
 

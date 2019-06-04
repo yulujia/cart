@@ -429,7 +429,7 @@ out:
 		d_fault_inject_fini();
 		d_log_fini();
 	} else {
-		// add ofi_conf to list
+		/* add ofi_conf to list */
 		crt_ctx_init_opt_t na_ofi_opt = {.ccio_na = "ofi+sockets"};
 
 		na_ofi_opt.ccio_ni = crt_na_ofi_conf.noc_interface;
