@@ -666,104 +666,6 @@ out:
 	return rc;
 }
 
-//int
-//crt_na_ofi_config_init(void)
-//{
-//	char		*port_str;
-//	char		*interface;
-//	int		 port = 0;
-//	struct ifaddrs	*if_addrs = NULL;
-//	struct ifaddrs	*ifa = NULL;
-//	void		*tmp_ptr;
-//	const char	*ip_str = NULL;
-//	int		 rc = 0;
-//
-//	interface = getenv("OFI_INTERFACE");
-//	if (interface != NULL && strlen(interface) > 0) {
-//		D_STRNDUP(crt_na_ofi_conf.noc_interface, interface, 64);
-//		if (crt_na_ofi_conf.noc_interface == NULL)
-//			D_GOTO(out, rc = -DER_NOMEM);
-//	} else {
-//		crt_na_ofi_conf.noc_interface = NULL;
-//		D_ERROR("ENV OFI_INTERFACE not set.");
-//		D_GOTO(out, rc = -DER_INVAL);
-//	}
-//
-//	rc = getifaddrs(&if_addrs);
-//	if (rc != 0) {
-//		D_ERROR("cannot getifaddrs, errno: %d(%s).\n",
-//			     errno, strerror(errno));
-//		D_GOTO(out, rc = -DER_PROTO);
-//	}
-//
-//	for (ifa = if_addrs; ifa != NULL; ifa = ifa->ifa_next) {
-//		if (strcmp(ifa->ifa_name, crt_na_ofi_conf.noc_interface))
-//			continue;
-//		if (ifa->ifa_addr == NULL)
-//			continue;
-//		memset(crt_na_ofi_conf.noc_ip_str, 0, INET_ADDRSTRLEN);
-//		if (ifa->ifa_addr->sa_family == AF_INET) {
-//			/* check it is a valid IPv4 Address */
-//			tmp_ptr =
-//			&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-//			ip_str = inet_ntop(AF_INET, tmp_ptr,
-//					   crt_na_ofi_conf.noc_ip_str,
-//					   INET_ADDRSTRLEN);
-//			if (ip_str == NULL) {
-//				D_ERROR("inet_ntop failed, errno: %d(%s).\n",
-//					errno, strerror(errno));
-//				freeifaddrs(if_addrs);
-//				D_GOTO(out, rc = -DER_PROTO);
-//			}
-//			/*
-//			 * D_DEBUG("Get interface %s IPv4 Address %s\n",
-//			 * ifa->ifa_name, na_ofi_conf.noc_ip_str);
-//			 */
-//			break;
-//		} else if (ifa->ifa_addr->sa_family == AF_INET6) {
-//			/* check it is a valid IPv6 Address */
-//			/*
-//			 * tmp_ptr =
-//			 * &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
-//			 * inet_ntop(AF_INET6, tmp_ptr, na_ofi_conf.noc_ip_str,
-//			 *           INET6_ADDRSTRLEN);
-//			 * D_DEBUG("Get %s IPv6 Address %s\n",
-//			 *         ifa->ifa_name, na_ofi_conf.noc_ip_str);
-//			 */
-//		}
-//	}
-//	freeifaddrs(if_addrs);
-//	if (ip_str == NULL) {
-//		D_ERROR("no IP addr found.\n");
-//		D_GOTO(out, rc = -DER_PROTO);
-//	}
-//
-//	rc = crt_get_port_opt(&port, ip_str);
-//	if (rc != 0) {
-//		D_ERROR("crt_get_port failed, rc: %d.\n", rc);
-//		D_GOTO(out, rc);
-//	}
-//
-//	port_str = getenv("OFI_PORT");
-//	if (crt_is_service() && port_str != NULL && strlen(port_str) > 0) {
-//		if (!is_integer_str(port_str)) {
-//			D_DEBUG(DB_ALL, "ignore invalid OFI_PORT %s.",
-//				port_str);
-//		} else {
-//			port = atoi(port_str);
-//			D_DEBUG(DB_ALL, "OFI_PORT %d, use it as service "
-//				"port.\n", port);
-//		}
-//	}
-//	crt_na_ofi_conf.noc_port = port;
-//
-//out:
-//	if (rc != -DER_SUCCESS) {
-//		D_FREE(crt_na_ofi_conf.noc_interface);
-//	}
-//	return rc;
-//}
-
 int
 crt_na_ofi_config_init(void)
 {
@@ -861,12 +763,12 @@ out:
 	}
 	return rc;
 }
+
 /**
  * 1) convert iterface name to IP string
  * 2) vind a free port number on the specified interface
  * 3) add new entry to the crt_na_ofi_config_opt list
  */
-
 int
 crt_na_ofi_config_init_opt(crt_ctx_init_opt_t *opt)
 {

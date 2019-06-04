@@ -728,7 +728,6 @@ crt_grp_lc_addr_insert(struct crt_grp_priv *grp_priv,
 		rc = -DER_EVICTED;
 	if (li->li_tag_addr[tag] == NULL) {
 		li->li_tag_addr[tag] = *hg_addr;
-		D_DEBUG(DB_ALL, "hg_addr %p inserted.\n", *hg_addr);
 	} else {
 		D_WARN("NA address already exits. "
 		       " grp_priv %p ctx_idx %d, rank: %d, tag %d, rlink %p\n",

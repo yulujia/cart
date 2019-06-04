@@ -219,6 +219,8 @@ crt_context_create(crt_context_t *crt_ctx)
 	opt.ccio_ni = crt_na_ofi_conf.noc_interface;
 	opt.ccio_na = addr_env;
 	opt.ccio_port = crt_na_ofi_conf.noc_port;
+	opt.ccio_share_na = crt_gdata.cg_share_na;
+	opt.ccio_ctx_max_num = crt_gdata.cg_ctx_max_num;
 
 	return crt_context_create_opt(crt_ctx, &opt);
 }
@@ -227,7 +229,7 @@ int
 crt_context_create_opt(crt_context_t *crt_ctx, crt_ctx_init_opt_t *opt)
 {
 	struct crt_context	*ctx = NULL;
-	int			rc = 0;
+	int			 rc = 0;
 
 	if (crt_ctx == NULL) {
 		D_ERROR("invalid parameter of NULL crt_ctx.\n");
@@ -1077,8 +1079,19 @@ crt_context_lookup(int ctx_idx)
 	return (found == true) ? ctx : NULL;
 }
 
+/**
+ * lookup cart context by network interface + provider name.
+ *
+ * \param[in] interface     network interface name
+ * \param[in] prov          provider name string
+ * \param[in] need_lock     whether or not to grab lock inside this function
+ *
+ * \return                  pointer to cart cnotext, or NULL if no match is
+ *                          found.
+ */
 crt_context_t
-crt_context_lookup_prov(const char *interface, const char *prov, bool need_lock) {
+crt_context_lookup_prov(const char *interface, const char *prov,
+			bool need_lock) {
 	struct crt_context	*ctx;
 	struct na_ofi_config	*na_conf_tmp;
 	bool			 found = false;
@@ -1099,7 +1112,6 @@ crt_context_lookup_prov(const char *interface, const char *prov, bool need_lock)
 
 	return (found == true) ? ctx : NULL;
 }
-
 
 int
 crt_context_idx(crt_context_t crt_ctx, int *ctx_idx)

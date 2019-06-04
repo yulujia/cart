@@ -330,14 +330,11 @@ int
 crt_hg_addr_free(struct crt_hg_context *hg_ctx, hg_addr_t addr)
 {
 	hg_return_t	ret = HG_SUCCESS;
-	hg_addr_t	addr_tmp = addr;
 
 	ret = HG_Addr_free(hg_ctx->chc_hgcla, addr);
 	if (ret != HG_SUCCESS) {
 		D_ERROR("HG_Addr_free() failed, hg_ret %d.\n", ret);
 		return -DER_HG;
-	} {
-		D_ERROR("HG_Addr_free(%p) success.\n", addr_tmp);
 	}
 
 	return 0;
@@ -460,7 +457,8 @@ crt_get_info_string(char **string)
 }
 
 /**
- * lookup the na plugin type given na_str
+ * lookup the na plugin type by na_str
+ *
  * \param[out]          na_type the na plugin type id
  * \param[in] na_str    the na plugin string, e.g. "ofi+psm2", or "ofi+sockets"
  *
@@ -469,20 +467,19 @@ crt_get_info_string(char **string)
 int
 crt_parse_na_type(int *na_type, char *na_str)
 {
-	int plugin_idx;
+	struct crt_na_dict *ent;
 
 	if (na_str == NULL) {
 		D_ERROR("na_str can't be NULL.\n");
 		return -DER_INVAL;
 	}
 
-	for (plugin_idx = 0; crt_na_dict[plugin_idx].nad_str != NULL;
-	     plugin_idx++) {
-		if (!strncmp(na_str, crt_na_dict[plugin_idx].nad_str,
-			     strlen(crt_na_dict[plugin_idx].nad_str) + 1)) {
-			*na_type = crt_na_dict[plugin_idx].nad_type;
-			return DER_SUCCESS;
-		}
+	for (ent = crt_na_dict; ent->nad_str != NULL; ent++) {
+		if (strncmp(na_str, ent->nad_str, strlen(ent->nad_str) + 1))
+			continue;
+
+		*na_type = ent->nad_type;
+		return DER_SUCCESS;
 	}
 
 	return -DER_NONEXIST;
@@ -498,8 +495,10 @@ crt_get_info_string_opt(char **string, crt_ctx_init_opt_t *opt)
 	int			 rc;
 
 	rc = crt_parse_na_type(&plugin, opt->ccio_na);
-	if (rc != DER_SUCCESS)
+	if (rc != DER_SUCCESS) {
+		D_ERROR("crt_parse_na_type() failed rc %d\n", rc);
 		return rc;
+	}
 	D_ASSERT(plugin == crt_na_dict[plugin].nad_type);
 	plugin_str = crt_na_dict[plugin].nad_str;
 
@@ -509,11 +508,10 @@ crt_get_info_string_opt(char **string, crt_ctx_init_opt_t *opt)
 		na_conf = crt_na_config_lookup(opt->ccio_ni, opt->ccio_na,
 					       true /* need_lock */);
 		D_ASSERTF(na_conf != NULL, "na_conf can't be NULL\n");
-		D_DEBUG(DB_ALL, "ni name: %s\n", na_conf->noc_interface);
 		port = na_conf->noc_port;
 		na_conf->noc_port++;
-		D_ASPRINTF(*string, "%s://%s:%d", plugin_str,
-			   na_conf->noc_ip_str, port);
+		D_ASPRINTF(*string,
+			   "%s://%s:%d", plugin_str, na_conf->noc_ip_str, port);
 	}
 	if (*string == NULL)
 		return -DER_NOMEM;
@@ -677,6 +675,9 @@ crt_hg_fini()
 	return rc;
 }
 
+/**
+ * initialize an hg class and an underlining na class
+ */
 static int
 crt_hg_init_ground_up(crt_ctx_init_opt_t *opt,
 		      na_class_t **na_class, hg_class_t **hg_class)
@@ -684,26 +685,30 @@ crt_hg_init_ground_up(crt_ctx_init_opt_t *opt,
 	char			*info_string = NULL;
 	struct hg_init_info	 init_info = {};
 	int			 rc;
-	char		addr_str[CRT_ADDR_STR_MAX_LEN] = {'\0'};
-	na_size_t	str_size = CRT_ADDR_STR_MAX_LEN;
+	char			 addr_str[CRT_ADDR_STR_MAX_LEN] = {'\0'};
+	na_size_t		 str_size = CRT_ADDR_STR_MAX_LEN;
 
 	rc = crt_get_info_string_opt(&info_string, opt);
-	if (rc != 0)
+	if (rc != DER_SUCCESS) {
+		D_DEBUG(DB_TRACE, "crt_get_info_string_opt() failed rc %d\n",
+			rc);
 		D_GOTO(out, rc);
-
-	D_DEBUG(DB_ALL, "info_string %s\n", info_string);
+	}
 
 	init_info.na_init_info.progress_mode = NA_DEFAULT;
-	init_info.na_init_info.max_contexts = 1;
+	if (opt->ccio_share_na == 0)
+		init_info.na_init_info.max_contexts = 1;
+	else
+		init_info.na_init_info.max_contexts = opt->ccio_ctx_max_num;
 	*na_class = NA_Initialize_opt(info_string, crt_is_service(),
-			&init_info.na_init_info);
+				      &init_info.na_init_info);
 	if (*na_class == NULL) {
 		D_ERROR("Could not initialize NA class.\n");
 		D_GOTO(out, rc = -DER_HG);
 	}
 
 	rc = crt_na_class_get_addr(*na_class, addr_str, &str_size);
-	if (rc != 0) {
+	if (rc != DER_SUCCESS) {
 		D_ERROR("crt_na_class_get_addr failed, rc: %d.\n", rc);
 		NA_Finalize(*na_class);
 		D_GOTO(out, rc = -DER_HG);
@@ -720,7 +725,7 @@ crt_hg_init_ground_up(crt_ctx_init_opt_t *opt,
 		D_GOTO(out, rc = -DER_HG);
 	}
 
-	/* register the shared RPCID to every hg_class */
+	/* register the shared RPCID to every new hg_class */
 	rc = crt_hg_reg_rpcid(*hg_class);
 	if (rc != 0) {
 		D_ERROR("crt_hg_reg_rpcid failed, rc: %d.\n", rc);
@@ -729,8 +734,9 @@ crt_hg_init_ground_up(crt_ctx_init_opt_t *opt,
 		D_GOTO(out, rc);
 	}
 
-
 out:
+	if (info_string)
+		D_FREE(info_string);
 	return rc;
 }
 
@@ -750,11 +756,12 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 
 	D_ASSERT(hg_ctx != NULL);
 	crt_ctx = container_of(hg_ctx, struct crt_context, cc_hg_ctx);
+	D_ASSERT(opt != NULL);
 
 	D_DEBUG(DB_NET, "crt_gdata.cg_share_na %d, crt_is_service() %d\n",
 			crt_gdata.cg_share_na, crt_is_service());
 
-	if (crt_gdata.cg_share_na == true)
+	if (opt->ccio_share_na == 1)
 		reuse_na_ctx = true;
 
 	na_conf = crt_na_config_lookup(opt->ccio_ni, opt->ccio_na,
@@ -777,9 +784,9 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 		hg_class = crt_gdata.cg_hg->chg_hgcla;
 		reuse_na_ctx = true;
 	} else {
-//		lookup_hg_cass_by_interface_and_provider;
+		/* lookup_hg_cass_by_interface_and_provider */
 		ctx_tmp = crt_context_lookup_prov(opt->ccio_ni, opt->ccio_na,
-				false);
+						  false);
 		if (ctx_tmp == NULL) {
 			D_ERROR("Interface %s initialized but no context can't be "
 				"found.\n", na_conf->noc_interface);
@@ -790,13 +797,8 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 		D_DEBUG(DB_ALL, "interface %s initialized.\n",
 			na_conf->noc_interface);
 	}
-/*	
-	if (idx == 0 || crt_gdata.cg_share_na == true) {
-	*/
+
 	if (reuse_na_ctx) {
-		D_DEBUG(DB_ALL, "reuse_na_ctx 1\n");
-//		hg_context =
-//			HG_Context_create_id(crt_gdata.cg_hg->chg_hgcla, idx);
 		hg_context = HG_Context_create_id(hg_class, idx);
 		if (hg_context == NULL) {
 			D_ERROR("Could not create HG context.\n");
@@ -812,13 +814,25 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 			D_GOTO(out, rc = -DER_HG);
 		}
 
-//		hg_ctx->chc_nacla = crt_gdata.cg_hg->chg_nacla;
-//		hg_ctx->chc_hgcla = crt_gdata.cg_hg->chg_hgcla;
 		hg_ctx->chc_nacla = na_class;
 		hg_ctx->chc_hgcla = hg_class;
 		D_DEBUG(DB_NET, "hg_ctx->chc_hgcla %p\n", hg_ctx->chc_hgcla);
-//		if (crt_gdata.cg_share_na == true)
+		/* uncomment the following line will cause an error, need to fix
+		 * it
+Guest 0 checkin result - ret: 0, room_no: 1083, bool_val 1.
+*** Error in `./install/Linux/TESTING/tests/test_multi_prov': free(): invalid pointer: 0x00007f7417a597f8 ***
+======= Backtrace: =========
+06/01-00:14:51.55 boro-36 CaRT[40477] hg   ERR  # HG -- Error -- /home/yulujia/codes/mercury-github/src/mercury_core.c:1244
+ # hg_core_finalize(): HG addrs must be freed before finalizing HG (8305216 remaining)
+
+		 */
+		if (opt->ccio_share_na == 1 || idx == 0) {
 			hg_ctx->chc_shared_na = true;
+			D_DEBUG(DB_TRACE, "idx %d, hg_ctx->chc_shared_na = true\n", idx);
+		} else {
+			hg_ctx->chc_shared_na = false;
+			D_DEBUG(DB_TRACE, "idx %d, hg_ctx->chc_shared_na = false\n", idx);
+		}
 	} else {
 		D_DEBUG(DB_ALL, "reuse_na_ctx 0\n");
 
@@ -861,9 +875,8 @@ crt_hg_ctx_init_opt(struct crt_hg_context *hg_ctx, int idx,
 	D_ASSERT(hg_ctx->chc_bulkcla != NULL);
 	D_ASSERT(hg_ctx->chc_bulkctx != NULL);
 
-	D_DEBUG(DB_ALL, "hg_ctx->chc_hgctx %p\n", hg_ctx->chc_hgctx);
 	rc = crt_hg_pool_init(hg_ctx);
-	if (rc != 0)
+	if (rc != DER_SUCCESS)
 		D_ERROR("context idx %d hg_ctx %p, crt_hg_pool_init failed, "
 			"rc: %d.\n", idx, hg_ctx, rc);
 
@@ -1125,7 +1138,7 @@ crt_hg_req_create(struct crt_hg_context *hg_ctx, struct crt_rpc_priv *rpc_priv)
 			rc = -DER_HG;
 		}
 	}
-	if (crt_gdata.cg_share_na == true) {
+	if (hg_ctx->chc_shared_na == true) {
 		hg_ret = HG_Set_target_id(rpc_priv->crp_hg_hdl,
 					  rpc_priv->crp_pub.cr_ep.ep_tag);
 		if (hg_ret != HG_SUCCESS) {

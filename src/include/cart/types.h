@@ -101,6 +101,12 @@ typedef struct crt_ctx_init_opt {
 	/* na plugin name, e.g. ofi+sockets or ofi+psm2 */
 	char		*ccio_na;
 	int		 ccio_port;
+	/**
+	 * 1 means to use scalable endpoint, 0 means do not use scalable
+	 * endpoint  
+	 */
+	int		 ccio_share_na;
+	int		 ccio_ctx_max_num;
 } crt_ctx_init_opt_t;
 
 typedef int		 crt_status_t;

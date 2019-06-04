@@ -285,12 +285,9 @@ struct na_ofi_config {
 };
 
 int crt_na_ofi_config_init(void);
-int crt_na_ofi_config_2_init(void);
 void crt_na_ofi_config_fini(void);
-void crt_na_ofi_config_2_fini(void);
 
 extern struct na_ofi_config crt_na_ofi_conf;
-extern struct na_ofi_config crt_na_ofi_conf_2;
 
 extern d_list_t crt_na_ofi_config_opt;
 extern pthread_rwlock_t	crt_na_ofi_config_rwlock;

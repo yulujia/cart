@@ -342,6 +342,8 @@ test_init(void)
 		opt.ccio_ni = "ib0";
 		opt.ccio_na = "ofi+psm2";
 		opt.ccio_port = 30000;
+		opt.ccio_share_na = 0;
+		opt.ccio_ctx_max_num = 1;
 		test_g.t_thread_id[i] = i;
 		if (i == 1)
 			rc = crt_context_create_opt(&test_g.t_crt_ctx[i], &opt);

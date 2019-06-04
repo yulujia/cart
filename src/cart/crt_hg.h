@@ -280,6 +280,5 @@ crt_hg_bulk_cancel(crt_bulk_opid_t opid)
 	return HG_Bulk_cancel(opid);
 }
 
-int
-crt_na_ofi_config_init_opt(crt_ctx_init_opt_t *opt);
+int crt_na_ofi_config_init_opt(crt_ctx_init_opt_t *opt);
 #endif /* __CRT_MERCURY_H__ */
