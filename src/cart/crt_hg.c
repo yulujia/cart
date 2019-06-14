@@ -754,6 +754,7 @@ crt_hg_ctx_fini(struct crt_hg_context *hg_ctx)
 
 	crt_hg_pool_fini(hg_ctx);
 
+	D_DEBUG(DB_NET, "before HG_Context_destroy.\n");
 	hg_ret = HG_Context_destroy(hg_context);
 	if (hg_ret == HG_SUCCESS) {
 		hg_ctx->chc_hgctx = NULL;
@@ -1056,7 +1057,14 @@ crt_hg_req_destroy(struct crt_rpc_priv *rpc_priv)
 		if (hg_ret != HG_SUCCESS) {
 			RPC_ERROR(rpc_priv, "HG_Destroy failed, hg_ret: %d\n",
 				  hg_ret);
+		} else {
+			D_DEBUG(DB_NET, "rpc_priv %p, hg_hdl %p destroyed.\n",
+				rpc_priv, rpc_priv->crp_hg_hdl);
 		}
+	} else {
+		D_WARN("Did not destroy rpc_priv %p, "
+			"rpc_priv->crp_hg_hdl %p.\n",
+			rpc_priv, rpc_priv->crp_hg_hdl);
 	}
 
 mem_free:
@@ -1231,6 +1239,8 @@ crt_hg_req_cancel(struct crt_rpc_priv *rpc_priv)
 			  hg_ret);
 		rc = -DER_HG;
 	}
+	if (hg_ret != HG_CANCEL_ERROR)
+		D_GOTO(out, rc);
 
 out:
 	return rc;

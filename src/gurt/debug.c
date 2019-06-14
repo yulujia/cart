@@ -535,7 +535,8 @@ int
 d_log_init_adv(char *log_tag, char *log_file, unsigned int flavor,
 		 d_dbug_t def_mask, d_dbug_t err_mask)
 {
-	int rc = 0;
+	bool	should_free = false;
+	int	rc = 0;
 
 	D_MUTEX_LOCK(&d_log_lock);
 	d_log_refcount++;
@@ -549,6 +550,10 @@ d_log_init_adv(char *log_tag, char *log_file, unsigned int flavor,
 	if (d_dbglog_data.dd_prio_err != 0)
 		err_mask = d_dbglog_data.dd_prio_err;
 
+	if (log_file != NULL) {
+		D_ASPRINTF(log_file, "%s-%d", log_file, getpid());
+		should_free = true;
+	}
 	rc = d_log_open(log_tag, 0, def_mask, err_mask, log_file, flavor);
 	if (rc != 0) {
 		D_PRINT_ERR("d_log_open failed: %d\n", rc);
@@ -568,6 +573,9 @@ out:
 		d_log_refcount--;
 	}
 	D_MUTEX_UNLOCK(&d_log_lock);
+	if (should_free)
+		D_FREE(log_file);
+
 	return rc;
 }
 
