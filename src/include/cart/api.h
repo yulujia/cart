@@ -53,6 +53,7 @@
 
 #include <cart/types.h>
 #include <gurt/errno.h>
+#include <gurt/common.h>
 #include <cart/iv.h>
 #include <cart/swim.h>
 
@@ -422,6 +423,19 @@ crt_reply_get(crt_rpc_t *rpc)
  */
 uint64_t
 crt_hlc_get(void);
+
+/**
+ * Return the second timestamp of hlc.
+ *
+ * \param[in] hlc              HLC timestamp
+ *
+ * \return                     The timestamp in second
+ */
+static inline uint64_t
+crt_hlc2sec(uint64_t hlc)
+{
+	return (hlc & ~CRT_HLC_MASK) / NSEC_PER_SEC;
+}
 
 /**
  * Abort an RPC request.
