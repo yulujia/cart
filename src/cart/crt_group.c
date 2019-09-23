@@ -3232,7 +3232,7 @@ crt_grp_config_psr_load(struct crt_grp_priv *grp_priv, d_rank_t psr_rank)
 		D_GOTO(out, rc = d_errno2der(errno));
 	}
 
-	D_ALLOC(grpname, CRT_GROUP_ID_MAX_LEN);
+	D_ALLOC(grpname, CRT_GROUP_ID_MAX_LEN + 64);
 	if (grpname == NULL)
 		D_GOTO(out, rc = -DER_NOMEM);
 	snprintf(fmt, 64, "%%*s%%%ds", CRT_GROUP_ID_MAX_LEN);
@@ -3277,7 +3277,7 @@ crt_grp_config_psr_load(struct crt_grp_priv *grp_priv, d_rank_t psr_rank)
 		D_GOTO(out, rc = -DER_INVAL);
 	}
 
-	D_ALLOC(addr_str, CRT_ADDR_STR_MAX_LEN);
+	D_ALLOC(addr_str, CRT_ADDR_STR_MAX_LEN + 64);
 	if (addr_str == NULL)
 		D_GOTO(out, rc = -DER_NOMEM);
 
